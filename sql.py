@@ -40,11 +40,12 @@ class Condition:
 
 def getTable(table_name) -> list[list[str]]:
     table = []
-    db = open(f"{table_name}.db").read()
-    rows = db.split("\n")
-    for i in range(len(rows)):
-        columns = rows[i].split(", ")
-        table.append(columns)
+    with open(f"{table_name}.db", 'r') as file:
+        db = file.read()
+        rows = db.split("\n")
+        for i in range(len(rows)):
+            columns = rows[i].split(", ")
+            table.append(columns)
     return table
 
 #[['Name', 'Age', 'CanDrive'], ['str', 'int', 'bool']]
@@ -111,6 +112,35 @@ def preprocess(condition_parts: list[str], metadata: list[list[str]]) -> list[li
     else:
         return [[],["Length even"]]
     return [good_conditions, and_or]
+
+def check2(values: list[str], metadata: list[list[str]]):
+    error_messages = []
+    for i in range(len(values) - 1):
+        if metadata[1][i] == "str":
+            try:
+                str(values[i])
+                
+            except ValueError:
+            # if not isinstance(value, str):
+                error_messages.append(f"{values[i]} should be of type string")
+        elif metadata[1][i] == "int":
+            try:
+                int(values[i])
+                
+            except ValueError:
+            # if not isinstance(value, int):
+                error_messages.append(f"{values[i]} should be of type integer")
+        elif metadata[1][i] == "bool":
+            try:
+                bool(values[i])
+            
+            except ValueError:
+            # if not isinstance(value, bool):
+                error_messages.append(f"{values[i]} should be of type boolean")
+
+    return error_messages
+        
+        
 
 db = getTable("student")
 metadata = db[:2]
@@ -243,6 +273,25 @@ def select(query:str) -> list[list[str]]:
 
     return result_table
 
+def insert(query):
+    before_values, valueswbracket = query.split(" VALUES (")
+    values, nothing = valueswbracket.split(")")
+    nothing, table_name = before_values.split("INTO ")
+    db = getTable(table_name)
+    metadata = db[:2]
+    listed_values = values.split(", ")
+    if len(listed_values) == len(metadata[0]):
+        errors = check2(listed_values, metadata)
+        if len(errors) == 0:
+            with open(f"{table_name}.db", 'a') as file:
+                file.write(f"\n{values}")
+        else:
+            return errors
+    else:
+        return "Insufficient columns for one row."
+
 # print(select("SELECT Name, Age FROM student WHERE Name = John AND Age = 13"))
 # print(select("SELECT Age, Height FROM student WHERE Age > 13 AND Height < 174"))
-print(select("SELECT * FROM student WHERE Name = Bob OR Name = John AND Age = 16"))
+# print(select("SELECT * FROM student WHERE Name = Bob OR Name = John AND Age = 16"))
+
+print(insert("INSERT INTO student VALUES (hi, 10)"))
