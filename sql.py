@@ -1,3 +1,5 @@
+import re 
+import copy
 """
     result = []
     and_or = ""
@@ -289,9 +291,94 @@ def insert(query):
             return errors
     else:
         return "Insufficient columns for one row."
+    
+def update(query):
+    # UPDATE table_name SET col = 'value, ...', col2 = "..." WHERE condition
+    result = []
+
+    beforeset, afterset = query.split(" SET ")
+    x, table_name = beforeset.split("UPDATE ")
+    colnvalues , condition = afterset.split(" WHERE ")
+    colmultinvalues = colnvalues.split(", ")
+    colmulti = []
+    values = []
+
+    for i in range(len(colmultinvalues)):
+        h, y = colmultinvalues[i].split(" = ")
+        colmulti.append(h)
+        values.append(y)
+    condition_parts = condition.split(" ")
+    metadata_columns = metadata[0]
+
+    db = getTable(table_name)
+
+    processed_conditions = preprocess(condition_parts, metadata)
+    if len(processed_conditions[0]) == 0:
+        print(processed_conditions[1])
+        return 
+    connectors = processed_conditions[1]
+    processed_conditions = processed_conditions[0]
+
+    i = 0
+    while i < len(processed_conditions):
+        temp = filter(processed_conditions[i].get_operand(), processed_conditions[i].get_operator(), processed_conditions[i].get_value(), metadata, db)
+        
+        if connectors[i] == "OR":    
+            result = union(result, temp)
+        elif connectors[i] == "AND":
+            result = intersection(result, temp)
+        else:
+            result = temp
+        i += 1
+
+    i = 0
+    result_table = []
+    wanted_columns = []
+
+    # for i in range(len(colmulti)):
+    #     errors = check2(colmulti, metadata)
+    #     if len(errors) > 0:
+    #         print(errors)
+    #         return
+    result
+    for i in range(len(metadata_columns)):
+        for j in range(len(colmulti)):
+            if colmulti[j] == metadata_columns[i].strip():
+                wanted_columns.append(i)
+
+    db_string = ""
+
+    for k in range(len(db)):
+        for z in range(len(db[k])):
+            db_string += str(db[k][z]) 
+            if k < len(db[k]) - 1:
+                db_string += str(", ")# Ensure the item is a string
+        db_string += "\n"
+
+    i = 0 
+    for i in range(len(result)):
+        for j in range(len(wanted_columns)):
+            new = copy.deepcopy(result[i])
+            new[wanted_columns[j]] = values[j]
+            result_string = ""
+            new_string = ""
+            for k in range(len(result[i])):
+                result_string += str(result[i][k]) 
+                if k < len(result[i]) - 1:
+                    result_string += str(", ") # Ensure the item is a string
+            for y in range(len(new)):
+                new_string += str(new[y]) 
+                if y < len(new) - 1:
+                    new_string += str(", ") # Ensure the item is a string
+
+            db_string = re.sub(result_string, new_string+'\n', db_string)
+
+    with open(f"{table_name}.db", 'w') as f:
+        f.write(f"{db_string}\n")
+    
 
 # print(select("SELECT Name, Age FROM student WHERE Name = John AND Age = 13"))
 # print(select("SELECT Age, Height FROM student WHERE Age > 13 AND Height < 174"))
 # print(select("SELECT * FROM student WHERE Name = Bob OR Name = John AND Age = 16"))
-
-print(insert("INSERT INTO student VALUES (hi, 10)"))
+# print(insert("INSERT INTO student VALUES (hi, 10)"))
+print(update("UPDATE student SET Age = 15 WHERE Name = John"))
